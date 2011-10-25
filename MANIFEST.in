@@ -1,0 +1,5 @@
+
+
+graft src/ipoptdriver/sphinx_build/html
+recursive-include src/ipoptdriver/test *.py
+
