@@ -14,6 +14,11 @@ Package Metadata
 
 - **description-file:** README.txt
 
+- **entry_points**:: 
+
+    [openmdao.driver]
+    ipoptdriver.ipoptdriver.IPOPTdriver=ipoptdriver.ipoptdriver:IPOPTdriver
+
 - **home-page:** https://github.com/OpenMDAO-Plugins/ipoptdriver
 
 - **keywords:** openmdao
