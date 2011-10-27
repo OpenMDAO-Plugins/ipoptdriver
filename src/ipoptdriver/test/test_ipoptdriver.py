@@ -298,7 +298,7 @@ class IPOPTdriverParaboloidTestCase(unittest.TestCase):
         else:
             self.fail('ValueError expected')
 
-        self.assertEqual( None, self.top.driver.status )
+        self.assertEqual( IpoptReturnStatus.Undefined, self.top.driver.status )
 
     
     def test_no_parameters(self):
@@ -312,7 +312,7 @@ class IPOPTdriverParaboloidTestCase(unittest.TestCase):
         else:
             self.fail('Runtimerror expected')
 
-        self.assertEqual( None, self.top.driver.status )
+        self.assertEqual( IpoptReturnStatus.Undefined, self.top.driver.status )
 
     
     def test_invalid_parameter_type(self):
@@ -329,7 +329,7 @@ class IPOPTdriverParaboloidTestCase(unittest.TestCase):
               "option 'hessian_constant' of type '<type 'dict'>'" )
         else:
             self.fail('ValueError expected')
-        self.assertEqual( None, self.top.driver.status )
+        self.assertEqual( IpoptReturnStatus.Undefined, self.top.driver.status )
 
     def test_invalid_parameter_value(self):
         
@@ -347,7 +347,7 @@ class IPOPTdriverParaboloidTestCase(unittest.TestCase):
                              "but a value of -99 <type 'int'> was specified." % maxint )
         else:
             self.fail('ValueError expected')
-        self.assertEqual( None, self.top.driver.status )
+        self.assertEqual( IpoptReturnStatus.Undefined, self.top.driver.status )
     
 
     def test_max_iteration_too_low(self):
@@ -449,7 +449,7 @@ class IPOPTdriverParaboloidTestCase(unittest.TestCase):
             
         else:
             self.fail('ValueError expected')
-        self.assertEqual( None, self.top.driver.status )
+        self.assertEqual( IpoptReturnStatus.Undefined, self.top.driver.status )
 
     def test_add_option_wrappers(self):
         

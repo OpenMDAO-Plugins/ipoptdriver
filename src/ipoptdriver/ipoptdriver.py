@@ -58,6 +58,12 @@ class IpoptReturnStatus:
     Invalid_Option = -12,
     Invalid_Number_Detected = -13
     
+    Unrecoverable_Exception=-100
+    NonIpopt_Exception_Thrown=-101
+    Insufficient_Memory=-102
+    Internal_Error=-199
+ 
+    Undefined = -9999 # not part of Ipopt. Added for use with wrapper
 
 def eval_f_and_eval_g(x, driver):
     '''
@@ -227,6 +233,32 @@ class IPOPTdriver(DriverUsesDerivatives):
                          [ 'ma27', 'ma57', 'ma77',
                            'pardiso', 'wsmp', 'mumps', 'custom'],
                          iotype='in', desc='linear algebra package used' )
+
+    status = Enum(IpoptReturnStatus.Undefined,
+                  [
+        IpoptReturnStatus.Solve_Succeeded,
+        IpoptReturnStatus.Solved_To_Acceptable_Level,
+        IpoptReturnStatus.Infeasible_Problem_Detected,
+        IpoptReturnStatus.Search_Direction_Becomes_Too_Small,
+        IpoptReturnStatus.Diverging_Iterates,
+        IpoptReturnStatus.User_Requested_Stop,
+        IpoptReturnStatus.Feasible_Point_Found,
+        IpoptReturnStatus.Maximum_Iterations_Exceeded ,
+        IpoptReturnStatus.Restoration_Failed ,
+        IpoptReturnStatus.Error_In_Step_Computation ,
+        IpoptReturnStatus.Maximum_CpuTime_Exceeded ,
+        IpoptReturnStatus.Not_Enough_Degrees_Of_Freedom ,
+        IpoptReturnStatus.Invalid_Problem_Definition ,
+        IpoptReturnStatus.Invalid_Option ,
+        IpoptReturnStatus.Invalid_Number_Detected ,
+        IpoptReturnStatus.Unrecoverable_Exception,
+        IpoptReturnStatus.NonIpopt_Exception_Thrown,
+        IpoptReturnStatus.Insufficient_Memory,
+        IpoptReturnStatus.Internal_Error,
+        IpoptReturnStatus.Undefined,
+        ],
+                  iotype='out',
+                  desc='Ipopt return code indicating status of optimization result' )
     
     options = Dict({
         # this would just turn off copyright banner
@@ -470,7 +502,6 @@ class IPOPTdriver(DriverUsesDerivatives):
         self.num_eq_constraints = 0
         self.num_constraints = 0
         
-        self.status = None
         self.obj = 0.0
         # Lagrange multipliers for the upper and lower bound constraints
         #  the pyipopt wrapper returns them to us. Need a place to
