@@ -30,15 +30,17 @@ Paraboloid w non-lin const  | nonlinear |   2   |    0     |   1 and 3   |
 from sys import maxint
 
 import unittest
-
+from nose import SkipTest, runmodule
 import numpy
+
+try:
+    from ipoptdriver.ipoptdriver import IPOPTdriver, IpoptReturnStatus
+except ImportError:
+    pass
 
 from openmdao.main.api import Assembly, Component, set_as_top
 from openmdao.lib.datatypes.api import Float, Array
-from ipoptdriver.ipoptdriver import IPOPTdriver
 from openmdao.util.testutil import assert_rel_error
-
-from ipoptdriver.ipoptdriver import IpoptReturnStatus
 
 
 class OptRosenSuzukiComponent(Component):
@@ -208,6 +210,12 @@ class IPOPTdriverParaboloidTestCase(unittest.TestCase):
 
     def setUp(self):
         '''setup'''
+        
+        try:
+            from ipoptdriver.ipoptdriver import IPOPTdriver, IpoptReturnStatus
+        except ImportError:
+            raise SkipTest("this test requires IPOPT to be installed")  
+        
         self.top = set_as_top(Assembly())
         self.top.add('comp', ParaboloidComponent())
         self.top.add('driver', IPOPTdriver())
@@ -497,6 +505,11 @@ class IPOPTdriverParaboloidWithLinearConstraintTestCase(unittest.TestCase):
     def setUp(self):
         '''setUp'''
         
+        try:
+            from ipoptdriver.ipoptdriver import IPOPTdriver, IpoptReturnStatus
+        except ImportError:
+            raise SkipTest("this test requires IPOPT to be installed")  
+        
         self.top = set_as_top(Assembly())
         self.top.add('comp', ParaboloidComponent())
         self.top.add('driver', IPOPTdriver())
@@ -558,6 +571,11 @@ class IPOPTdriverParaboloidWithLinearEqualityTestCase(unittest.TestCase):
 
     def setUp(self):
         '''setUp'''
+        
+        try:
+            from ipoptdriver.ipoptdriver import IPOPTdriver, IpoptReturnStatus
+        except ImportError:
+            raise SkipTest("this test requires IPOPT to be installed")  
         
         self.top = set_as_top(Assembly())
         self.top.add('comp', ParaboloidComponent())
@@ -644,6 +662,11 @@ class IPOPTdriverRosenSuzukiTestCase(unittest.TestCase):
 
     def setUp(self):
         '''setup test'''
+        try:
+            from ipoptdriver.ipoptdriver import IPOPTdriver, IpoptReturnStatus
+        except ImportError:
+            raise SkipTest("this test requires IPOPT to be installed")  
+        
         self.top = set_as_top(Assembly())
         self.top.add('comp', OptRosenSuzukiComponent())
         self.top.add('driver', IPOPTdriver())
@@ -699,6 +722,11 @@ class IPOPTdriverExample1FromManualTestCase(unittest.TestCase):
 
     def setUp(self):
         '''setup test'''
+        try:
+            from ipoptdriver.ipoptdriver import IPOPTdriver, IpoptReturnStatus
+        except ImportError:
+            raise SkipTest("this test requires IPOPT to be installed")  
+        
         self.top = set_as_top(Assembly())
         self.top.add('comp', Example1FromManualComponent())
         self.top.add('driver', IPOPTdriver())
@@ -746,6 +774,11 @@ class IPOPTdriverConstrainedBettsTestCase(unittest.TestCase):
 
     def setUp(self):
         '''setup test'''
+        try:
+            from ipoptdriver.ipoptdriver import IPOPTdriver, IpoptReturnStatus
+        except ImportError:
+            raise SkipTest("this test requires IPOPT to be installed")  
+        
         self.top = set_as_top(Assembly())
         self.top.add('comp', ConstrainedBettsComponent())
         self.top.add('driver', IPOPTdriver())
@@ -831,18 +864,4 @@ class IPOPTdriverConstrainedBettsTestCase(unittest.TestCase):
 
 if __name__ == "__main__":
 
-    suite = unittest.TestSuite()
-
-    suite.addTest(
-        unittest.makeSuite(IPOPTdriverParaboloidTestCase))
-    suite.addTest(
-       unittest.makeSuite(IPOPTdriverParaboloidWithLinearConstraintTestCase))
-    suite.addTest(
-        unittest.makeSuite(IPOPTdriverParaboloidWithLinearEqualityTestCase))
-    suite.addTest(unittest.makeSuite(IPOPTdriverConstrainedBettsTestCase))
-    suite.addTest(unittest.makeSuite(IPOPTdriverRosenSuzukiTestCase))
-    suite.addTest(unittest.makeSuite(IPOPTdriverExample1FromManualTestCase))
-    
-
-    results = unittest.TextTestRunner(verbosity=2).run(suite)
-
+    runmodule()
