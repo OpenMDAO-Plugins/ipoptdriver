@@ -9,39 +9,36 @@ The Ipopt Plugin is a wrapper for the
 is a software package for large-scale nonlinear optimization.
 
 The rest of this document assumes that you have already installed OpenMDAO and understand
-some of the basics of using OpenMDAO.
-This document also assumes that the user has some understanding of how Ipopt
-works. In particular, the user should aware of all the 
+some of the basics of using it.
+This document also assumes that you have some understanding of how Ipopt
+works. In particular, you should aware of all the 
 `options for Ipopt
 <http://www.coin-or.org/Ipopt/documentation/node59.html#app.options_ref>`_.
 
-In addition, there is a 
-`short Ipopt tutorial is available
-<http://drops.dagstuhl.de/volltexte/2009/2089/pdf/09061.WaechterAndreas.Paper.2089.pdf>`_ 
-and a 
-`longer tutorial
-<https://projects.coin-or.org/Ipopt/export/2054/stable/3.9/Ipopt/doc/documentation.pdf>`_. 
+In addition, both a `short Ipopt tutorial
+<http://drops.dagstuhl.de/volltexte/2009/2089/pdf/09061.WaechterAndreas.Paper.2089.pdf>`_
+and a `longer tutorial
+<https://projects.coin-or.org/Ipopt/export/2054/stable/3.9/Ipopt/doc/documentation.pdf>`_
+are available. 
 
 
-.. note::  In addition to the requirement of having Ipopt installed, 
-           the Python wrapper,
-           `Pyipopt 
-           <http://code.google.com/p/pyipopt/>`_ needs to be installed.
+.. note::  You must have both Ipopt `and` the Python wrapper `Pyipopt 
+           <http://code.google.com/p/pyipopt/>`_ installed.
 
-.. note::  Ipopt is built using a variety of third party libraries for 
+.. note::  Ipopt is built using a variety of third-party libraries for 
            solving equations. The OpenMDAO Ipopt driver
-           was tested using the following Ipopt third party libraries:
-           BLAS, LAPACK, MUMPS, ASL and Metis.
+           was tested using the following Ipopt third-party libraries:
+           BLAS, LAPACK, MUMPS, ASL, and Metis.
 
 
 How Do I Use the Ipopt Plugin?
 -------------------------------------
 
-Using the plugin is like using other optimizer drivers available in 
+Using the plugin is similar to using other optimizer drivers available in 
 OpenMDAO. 
 
-Here is some example code. The comments explain some details of the usage of this
-component.
+Here is some example code. The comments explain some details of how this component is
+used.
 
 .. testcode:: Ipoptdriver
 
