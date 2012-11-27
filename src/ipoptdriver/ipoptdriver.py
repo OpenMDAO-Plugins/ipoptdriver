@@ -480,8 +480,8 @@ class IPOPTdriver(DriverUsesDerivatives):
                    desc='List of additional optimization parameters' )
     
 
-    def __init__(self, doc=None):
-        super(IPOPTdriver, self).__init__( doc)
+    def __init__(self):
+        super(IPOPTdriver, self).__init__()
         
         # Ipopt does not provide the option
         #   to let it compute derivatives.
