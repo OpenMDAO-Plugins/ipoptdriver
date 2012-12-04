@@ -16,11 +16,11 @@ Package Metadata
 
 - **entry_points**:: 
 
-    [openmdao.container]
-    ipoptdriver.ipoptdriver.IPOPTdriver=ipoptdriver.ipoptdriver:IPOPTdriver
     [openmdao.component]
     ipoptdriver.ipoptdriver.IPOPTdriver=ipoptdriver.ipoptdriver:IPOPTdriver
     [openmdao.driver]
+    ipoptdriver.ipoptdriver.IPOPTdriver=ipoptdriver.ipoptdriver:IPOPTdriver
+    [openmdao.container]
     ipoptdriver.ipoptdriver.IPOPTdriver=ipoptdriver.ipoptdriver:IPOPTdriver
 
 - **home-page:** https://github.com/OpenMDAO-Plugins/ipoptdriver
@@ -50,5 +50,5 @@ Package Metadata
 
 - **summary:** Openmdao driver wrapper for the Ipopt optimization code
 
-- **version:** 0.12
+- **version:** 0.13
 

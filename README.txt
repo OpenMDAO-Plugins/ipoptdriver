@@ -9,5 +9,5 @@ needs to be installed.
 To view the Sphinx documentation for this distribution, which includes information on
 how to make use of the wrapper, type:
 
-plugin_docs ipoptdriver
+openmdao docs ipoptdriver
 
