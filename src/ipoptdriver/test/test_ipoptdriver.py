@@ -782,7 +782,6 @@ class IPOPTdriverExample1FromManualTestCase(unittest.TestCase):
                                self.top.comp.x[1], places=2)
 
     def test_array_parameter(self):
-        raise SkipTest('ArrayParameters vs. array element constraints')
 
         self.top.driver.add_objective('comp.result')
         
@@ -876,27 +875,6 @@ class IPOPTdriverConstrainedBettsTestCase(unittest.TestCase):
                                self.top.comp.x[0], places=2)
         self.assertAlmostEqual(self.top.comp.opt_design_vars[1], 
                                self.top.comp.x[1], places=2)
-
-    def test_fd_step_set_too_large(self):
-
-        self.top.driver.add_objective( 'comp.result' )
-
-        self.top.driver.add_parameter( 'comp.x[0]', 2.0, 50.0,
-           fd_step = 9999999999999999999999999999999999999999999999999.0 )
-        self.top.driver.add_parameter( 'comp.x[1]', -50.0, 50.0 )
-        
-        map(self.top.driver.add_constraint,
-            [ '-10.0 + 10.0 * comp.x[0] - comp.x[1] > 0.0' ] )
-
-        self.top.run()
-
-        actual = self.top.driver.eval_objective()
-        desired =  self.top.comp.opt_objective
-        tolerance = 0.00001
-        error = (actual - desired) / desired
-        if abs(error) < tolerance:
-            self.fail('actual %s, desired %s; error %s should be > tolerance %s'
-                           % (actual, desired, error, tolerance))
 
 
 if __name__ == "__main__":
