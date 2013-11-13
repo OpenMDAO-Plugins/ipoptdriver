@@ -5,7 +5,7 @@
 ====================
 Source Documentation
 ====================
-        
+
         
 .. index:: ipoptdriver.py
 
@@ -18,5 +18,18 @@ ipoptdriver.py
    :members:
    :undoc-members:
    :show-inheritance:
-    
+
+        
+.. index:: test_ipoptdriver.py
+
+.. _ipoptdriver.test.test_ipoptdriver.py:
+
+test_ipoptdriver.py
+-------------------
+
+.. automodule:: ipoptdriver.test.test_ipoptdriver
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
         
