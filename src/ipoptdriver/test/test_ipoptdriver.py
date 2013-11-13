@@ -72,10 +72,10 @@ class OptRosenSuzukiComponent(Component):
     x = Array(iotype='in')
     result = Float(iotype='out')
     
-    def __init__(self, doc=None):
+    def __init__(self):
         """Initialize"""
         
-        super(OptRosenSuzukiComponent, self).__init__(doc)
+        super(OptRosenSuzukiComponent, self).__init__()
         # Initial guess
         self.x = numpy.array([1., 1., 1., 1.], dtype=float)
         self.result = 0.
@@ -117,10 +117,10 @@ class Example1FromManualComponent(Component):
     x = Array(iotype='in')
     result = Float(iotype='out')
     
-    def __init__(self, doc=None):
+    def __init__(self):
         """Initialize"""
         
-        super(Example1FromManualComponent, self).__init__(doc)
+        super(Example1FromManualComponent, self).__init__()
         # Initial guess
         self.x = numpy.array([2.0, 1.0], dtype=float)
 
@@ -144,8 +144,8 @@ class ParaboloidComponent(Component):
     x = Array(iotype='in')
     result = Float(iotype='out')
     
-    def __init__(self, doc=None):
-        super(ParaboloidComponent, self).__init__(doc)
+    def __init__(self):
+        super(ParaboloidComponent, self).__init__()
         self.x = numpy.array([10., 10.], dtype=float) # initial guess
 
         self.result = 0.
@@ -189,8 +189,8 @@ class ConstrainedBettsComponent(Component):
     x = Array(iotype='in')
     result = Float(iotype='out')
     
-    def __init__(self, doc=None):
-        super(ConstrainedBettsComponent, self).__init__(doc)
+    def __init__(self):
+        super(ConstrainedBettsComponent, self).__init__()
         self.x = numpy.array([-1.0, -1.0], dtype=float) # initial guess
         self.result = 0.
         
@@ -244,6 +244,21 @@ class IPOPTdriverParaboloidTestCase(unittest.TestCase):
 
         self.standard_setup()
         
+        self.top.run()
+        self.assertAlmostEqual(self.top.comp.opt_objective, 
+                               self.top.driver.eval_objective(), places=2)
+        self.assertAlmostEqual(self.top.comp.opt_design_vars[0], 
+                               self.top.comp.x[0], places=2)
+        self.assertAlmostEqual(self.top.comp.opt_design_vars[1], 
+                               self.top.comp.x[1], places=2)
+        self.assertEqual( IpoptReturnStatus.Solve_Succeeded,
+                          self.top.driver.status )
+
+    def test_array_parameter(self):
+
+        self.top.driver.add_objective('comp.result')
+        self.top.driver.add_parameter('comp.x', -100.0, 100.0,
+                                      fd_step = .00001)
         self.top.run()
         self.assertAlmostEqual(self.top.comp.opt_objective, 
                                self.top.driver.eval_objective(), places=2)
@@ -468,8 +483,7 @@ class IPOPTdriverParaboloidTestCase(unittest.TestCase):
         try:
             self.top.driver.nlp.str_option( 'linear_solver', 44 )
         except TypeError, err:
-            self.assertEqual(str(err),
-                  "str_option() argument 2 must be string, not int" ) 
+            self.assertEqual(str(err), "must be string, not int" ) 
         else:
             self.fail('TypeError expected')
 
@@ -596,6 +610,7 @@ class IPOPTdriverParaboloidWithLinearEqualityTestCase(unittest.TestCase):
                                       fd_step = .00001)
         self.top.driver.add_parameter('comp.x[1]', -100.0, 100.0,
                                       fd_step = .00001)
+
     def test_just_one_equality_constraint(self):
 
         self.standard_setup()
@@ -657,6 +672,7 @@ class IPOPTdriverParaboloidWithLinearEqualityTestCase(unittest.TestCase):
         self.assertAlmostEqual(6.0,
                                self.top.comp.x[1], places=2)
 
+
 class IPOPTdriverRosenSuzukiTestCase(unittest.TestCase):
     """test IPOPT optimizer component using the Rosen Suzuki problem"""
 
@@ -715,6 +731,7 @@ class IPOPTdriverRosenSuzukiTestCase(unittest.TestCase):
         self.assertAlmostEqual(self.top.comp.opt_design_vars[3], 
                                self.top.comp.x[3], places=1)
 
+
 class IPOPTdriverExample1FromManualTestCase(unittest.TestCase):
     """
       Example 1 from the NEWSUMT manual
@@ -764,7 +781,30 @@ class IPOPTdriverExample1FromManualTestCase(unittest.TestCase):
         self.assertAlmostEqual(self.top.comp.opt_design_vars[1], 
                                self.top.comp.x[1], places=2)
 
+    def test_array_parameter(self):
+        raise SkipTest('ArrayParameters vs. array element constraints')
 
+        self.top.driver.add_objective('comp.result')
+        
+        self.top.driver.add_parameter('comp.x', 0.0, 100.0,
+                                      fd_step = .00001)
+
+        map(self.top.driver.add_constraint,[
+            '2.0 * comp.x[0] - comp.x[1] - 1.0 > 0.0',
+            'comp.x[0] - 2.0 * comp.x[1] + 1.0 > 0.0',
+            '- comp.x[0]**2 + 2.0 * ( comp.x[0] + comp.x[1]) - 1.0 > 0.0'
+            ])
+
+        self.top.run()
+
+        assert_rel_error(self,
+                         self.top.driver.eval_objective(),
+                         self.top.comp.opt_objective, 
+                         0.005)
+        self.assertAlmostEqual(self.top.comp.opt_design_vars[0], 
+                               self.top.comp.x[0], places=2)
+        self.assertAlmostEqual(self.top.comp.opt_design_vars[1], 
+                               self.top.comp.x[1], places=2)
 
 
 class IPOPTdriverConstrainedBettsTestCase(unittest.TestCase):
@@ -857,9 +897,6 @@ class IPOPTdriverConstrainedBettsTestCase(unittest.TestCase):
         if abs(error) < tolerance:
             self.fail('actual %s, desired %s; error %s should be > tolerance %s'
                            % (actual, desired, error, tolerance))
-
-
-
 
 
 if __name__ == "__main__":

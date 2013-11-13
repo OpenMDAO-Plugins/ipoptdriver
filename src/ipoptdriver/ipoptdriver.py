@@ -1,10 +1,10 @@
 """
     ipoptdriver.py - Driver for the IPOPT optimizer.
-    
+
     See Appendix B for additional information on the :ref:`IPOPTDriver`.
 """
 
-# pylint: disable=E0611,F0401,E1101,R0903,E1002,R0903,C0103,C0324,W0141
+# pylint: disable=E0611,F0401,E1101,R0903,E1002,R0903,C0103
 # E0611 - name cannot be found in a module
 # F0401 - Unable to import module
 # E1101 - Used when a variable is accessed for an unexistent member
@@ -13,9 +13,8 @@
 # R0903 - Disable complaints about Too few public methods
 # C0103 - Disable complaints Invalid name "setUp"
 #              (should match [a-z_][a-z0-9_]{2,30}$)
-# C0324 - Disable complaints Comma not followed by a space
-# W0141 - Disable complaints Used builtin function 'map'
 
+import functools
 import sys
 
 #public symbols
@@ -24,19 +23,21 @@ __all__ = ['IPOPTdriver']
 from numpy import zeros, array, append
 
 import pyipopt
+pyipopt.set_loglevel(0)  # Avoid wrapper entry/return trace.
 
-from openmdao.lib.datatypes.api import Enum, Float, Int, Dict
-from openmdao.lib.differentiators.finite_difference import FiniteDifference
-
-from openmdao.main.driver_uses_derivatives import DriverUsesDerivatives
+from openmdao.main.api import Driver
+from openmdao.main.datatypes.api import Enum, Float, Int, Dict
 from openmdao.main.exceptions import RunStopped
+from openmdao.main.interfaces import IHasParameters, IHasConstraints, \
+                                     IHasObjective, implements, IOptimizer
 from openmdao.main.hasconstraints import HasConstraints
 from openmdao.main.hasobjective import HasObjective
 from openmdao.main.hasparameters import HasParameters
 
 from openmdao.util.decorators import add_delegate
 
-class IpoptReturnStatus:
+
+class IpoptReturnStatus(object):
     '''A fake enum for the possible values of
     the status variable returned by Ipopt
     '''
@@ -48,70 +49,40 @@ class IpoptReturnStatus:
     Diverging_Iterates = 4
     User_Requested_Stop = 5
     Feasible_Point_Found = 6
-    
+
     Maximum_Iterations_Exceeded = -1
     Restoration_Failed = -2
     Error_In_Step_Computation = -3
     Maximum_CpuTime_Exceeded = -4
     Not_Enough_Degrees_Of_Freedom = -10
     Invalid_Problem_Definition = -11
-    Invalid_Option = -12,
+    Invalid_Option = -12
     Invalid_Number_Detected = -13
-    
-    Unrecoverable_Exception=-100
-    NonIpopt_Exception_Thrown=-101
-    Insufficient_Memory=-102
-    Internal_Error=-199
- 
+
+    Unrecoverable_Exception = -100
+    NonIpopt_Exception_Thrown = -101
+    Insufficient_Memory = -102
+    Internal_Error = -199
+
     Undefined = -9999 # not part of Ipopt. Added for use with wrapper
-
-def eval_f_and_eval_g(x, driver):
-    '''
-    eval objective function and constraints.
-    Cache results
-    '''
-
-    # update the design variables in the model
-    driver.set_parameters(x)
-    super(IPOPTdriver, driver).run_iteration()
-
-    return 
 
 
 def eval_f(x, driver):
     '''evaluate objective function'''
 
-    eval_f_and_eval_g( x, driver )
-
-    obj = driver.eval_objective()
-
-    return obj
+    return driver.eval_objective()
 
 def eval_g(x, driver):
     '''evaluate constraint functions'''
 
-    eval_f_and_eval_g( x, driver )
-
-    driver.update_constraints( )
-
-    return driver.constraint_vals
+    return array(driver.eval_constraints(driver.parent))
 
 def eval_grad_f(x, driver):
     '''gradient of the object function'''
 
-    # Need this call to make sure
-    #   the model has the right params
-    driver.set_parameters(x)
-    # Need to run the model to get the outputs in sync
-    #  with the inputs. The calc_derivatives call assumes this
-    super(IPOPTdriver, driver).run_iteration()
-
-    super(IPOPTdriver, driver).calc_derivatives(first=True)
-    driver.ffd_order = 1
-    driver.differentiator.calc_gradient()
-    driver.ffd_order = 0
-
-    return driver.differentiator.get_gradient(driver.get_objectives().keys()[0])
+    if driver._saved_j is None:
+        driver._recalc_j()
+    return driver._saved_j[0, :].ravel()
 
 def eval_jac_g(x, flag, driver):
     '''
@@ -123,113 +94,96 @@ def eval_jac_g(x, flag, driver):
 
     if flag:
         # for 4 variables and 2 constraints, for example,
-        #   return (array([0, 0, 0, 0, 1, 1, 1, 1]), 
-        #         array([0, 1, 2, 3, 0, 1, 2, 3]))
+        #   return (array([0, 0, 0, 0, 1, 1, 1, 1]),
+        #           array([0, 1, 2, 3, 0, 1, 2, 3]))
 
         irow = array( [[ ]] )
-        for i in range( driver.num_constraints ) :
+        for i in range( driver.num_constraints ):
             newrow = array( [ [i] * driver.num_params ] )
-            if irow.shape == (1, 0):
+            if i:
+                irow = append( irow, newrow, axis=0 )
+            else:
                 irow = newrow
+
+        jcol = array( [[ ]] )
+        prange = range( driver.num_params )
+        for i in range( driver.num_constraints ):
+            newrow = array( [ prange ] )
+            if i:
+                jcol = append( jcol, newrow, axis=0 )
             else:
-                irow = append( irow , newrow, axis=0 )
- 
-        jcol = array( [[]] )
-        for i in range( driver.num_constraints ) :
-            newrow = array( [ range( driver.num_params ) ] )
-            if jcol.shape == (1, 0):
                 jcol = newrow
-            else:
-                jcol = append( jcol , newrow, axis= 0 )
- 
+
         return ( irow, jcol )
-                         
+
     else:
-        # Need this call to make sure
-        #   the model has the right params
-        driver.set_parameters(x)
-
-        super(IPOPTdriver, driver).calc_derivatives(first=True)
-        driver.ffd_order = 1
-        driver.differentiator.calc_gradient()
-        driver.ffd_order = 0
-
         # Need to return jac_g with dimensions of
         #    driver.num_constraints, driver.num_params
 
-        # The inequality constraints come first
-        #    then the equality constraints
+        if driver._saved_j is None:
+            driver._recalc_j()
+        return driver._saved_j[1:, :]
 
-        # For inequality constraints in Ipopt, we set the lower bounds
-        #    to 0.0 and the upper bounds to a very large number.
-        #    So, in effect, the inequality constraints have the form
-        #    g(x) >= 0.0. That is the same way that NEWSUMT
-        #    assumes them to be. CONMIN assumes g(x) <= 0.0.
-        #    That is what the driver assumes. So we need a negative
+def eval_h(*args, **kwargs):
+    """ Just a placeholder, should not be called. """
 
-        driver.jac_g = zeros((driver.num_constraints, driver.num_params), 'd')
+    raise NotImplementedError('eval_h')
 
-        i = 0
-        for name in driver.get_ineq_constraints().keys() :
-            driver.jac_g[ i, : ] = - driver.differentiator.get_gradient(name)
-            i += 1
-        for name in driver.get_eq_constraints().keys() :
-            driver.jac_g[ i, : ] = - driver.differentiator.get_gradient(name)
-            i += 1
+def apply_new(x, driver):
+    """ Apply new parameters and evaluate. """
 
-        return driver.jac_g
- 
-def intermediate_callback(alg_mod, iteration, obj_value, 
-                    inf_pr, inf_du,
-                    mu, d_norm,
-                    regularization_size,
-                    alpha_du, alpha_pr,
-                    ls_trials,
-                    driver,
-                     ):
+    driver.set_parameters(x)
+    super(IPOPTdriver, driver).run_iteration()
+    driver._prev_parameters = x.copy()
+    driver._saved_j = None
+
+def intermediate_callback(alg_mod, iteration, obj_value, inf_pr, inf_du,
+                          mu, d_norm, regularization_size, alpha_du, alpha_pr,
+                          ls_trials, driver):
     ''' Ipopt calls back to this function each iteration'''
-   
+
     # Incrementing the count here gets a true value of the iterations
     #   done by Ipopt
     driver.iter_count += 1
+    driver.record_case()
 
-    if driver._stop: 
-        return False
-    else:
-        return True
+    return not driver._stop
+
 
 @add_delegate(HasParameters, HasConstraints, HasObjective)
-class IPOPTdriver(DriverUsesDerivatives):
-    """ Driver wrapper of C version of IPOPT. 
+class IPOPTdriver(Driver):
+    """ Driver wrapper of C version of IPOPT.
     """
-    # Control parameters for IPOPT. Specifically
-    #    list the most common. Leave the rest for the
-    #    dictionary "options"
+
+    implements(IHasParameters, IHasConstraints, IHasObjective, IOptimizer)
+
+    # Control parameters for IPOPT. Specifically list the most common.
+    # Leave the rest for the dictionary "options".
     print_level = Enum(5, range(13), iotype='in',
                        desc='Print '
                        'information during IPOPT solution. Higher values are '
                        'more verbose. Use 0 for no output')
-    
-    tol = Float(1.0e-8, iotype='in', low = 0.0,
-                desc='convergence tolerance.' + \
-                'Algorithm terminates if the scaled NLP error becomes ' + \
-                'smaller than this value and if additional conditions ' + \
+
+    tol = Float(1.0e-8, iotype='in', low=0.0,
+                desc='convergence tolerance. '
+                'Algorithm terminates if the scaled NLP error becomes '
+                'smaller than this value and if additional conditions '
                 '(see Ipopt manual) are met')
-    
-    max_iter = Int(3000, iotype='in', low=0, 
+
+    max_iter = Int(3000, iotype='in', low=0,
                    desc='Maximum number of iterations')
-    
-    max_cpu_time = Float(1.0e6, iotype='in', low = 0.0,
+
+    max_cpu_time = Float(1.0e6, iotype='in', low=0.0,
                          desc='limit on CPU seconds' )
 
-    
-    constr_viol_tol = Float(0.0001, iotype='in', low = 0.0,
+    constr_viol_tol = Float(0.0001, iotype='in', low=0.0,
                             desc='absolute tolerance on constraint violation' )
-    
-    obj_scaling_factor = Float(1.0, iotype='in', 
+
+    obj_scaling_factor = Float(1.0, iotype='in',
                                desc='scaling factor for the objective function')
-    
-    linear_solver = Enum('ma27',
+
+    # Previous default of 'ma27' isn't always available.
+    linear_solver = Enum('mumps',
                          [ 'ma27', 'ma57', 'ma77',
                            'pardiso', 'wsmp', 'mumps', 'custom'],
                          iotype='in', desc='linear algebra package used' )
@@ -259,23 +213,36 @@ class IPOPTdriver(DriverUsesDerivatives):
         ],
                   iotype='out',
                   desc='Ipopt return code indicating status of optimization result' )
-    
+
+    # Available options can be listed by 'ipopt --print-options'.
     options = Dict({
         # this would just turn off copyright banner
         #    self.nlp.str_option( "sb", 'yes' )
-        # to suppresses all output set the following to 'yes'
+        # to suppress all output set the following to 'yes'
         'suppress_all_output': 'no',
+
+        # Output.
+        # 'print_level' : 5,  # Made into variable.
         'output_file' : "",
         'file_print_level' : 5,
         'print_user_options' : "no",
         'print_options_documentation' : "no",
         'print_timing_statistics' : "no",
-        'option_file_name' : "",
+        'option_file_name' : "",  # Normal default is 'ipopt.opt'.
         'replace_bounds' : "no",
         'skip_finalize_solution_call' : "no",
         'print_info_string' : "no",
+        'inf_pr_output' : "original",
+        'print_frequency_iter' : 1,
+        'print_frequency_time' : 0.,
+
+        # Convergence.
+        #'tol' : 1e-08,               # Made into variable.
         's_max' : 100.0,
+        #'max_iter' : 3000,           # Made into variable.
+        #'max_cpu_time' : 1e+06,      # Made into variable.
         'dual_inf_tol' : 1.0,
+        #'constr_viol_tol' : 0.0001,  # Made into variable.
         'compl_inf_tol' : 0.0001,
         'acceptable_tol' : 1e-06,
         'acceptable_iter' : 15,
@@ -285,11 +252,16 @@ class IPOPTdriver(DriverUsesDerivatives):
         'acceptable_obj_change_tol' : 1e+20,
         'diverging_iterates_tol' : 1e+20,
         'mu_target' : 0.0,
+
+        # NLP Scaling.
         'nlp_scaling_method' : "gradient-based",
+        #'obj_scaling_factor' : 1.,  # Made into variable.
         'nlp_scaling_max_gradient' : 100.0,
         'nlp_scaling_obj_target_gradient' : 0.0,
         'nlp_scaling_constr_target_gradient' : 0.0,
         'nlp_scaling_min_value' : 1e-08,
+
+        # NLP.
         'nlp_lower_bound_inf' : -1e+19,
         'nlp_upper_bound_inf' : 1e+19,
         'fixed_variable_treatment' : "make_parameter",
@@ -303,6 +275,8 @@ class IPOPTdriver(DriverUsesDerivatives):
         'jac_c_constant' : "no",
         'jac_d_constant' : "no",
         'hessian_constant' : "no",
+
+        # Initialization.
         'bound_push' : 0.01,
         'bound_frac' : 0.01,
         'slack_bound_push' : 0.01,
@@ -312,6 +286,8 @@ class IPOPTdriver(DriverUsesDerivatives):
         'bound_mult_init_method' : "constant",
         'least_square_init_primal' : "no",
         'least_square_init_duals' : "no",
+
+        # Barrier parameter update.
         'mu_max_fact' : 1000.0,
         'mu_max' : 100000.0,
         'mu_min' : 1e-11,
@@ -340,6 +316,9 @@ class IPOPTdriver(DriverUsesDerivatives):
         'quality_function_max_section_steps' : 8,
         'quality_function_section_sigma_tol' : 0.01,
         'quality_function_section_qf_tol' : 0.0,
+
+        # Line Search.
+        'line_search_method' : "filter",
         'alpha_red_factor' : 0.5,
         'accept_every_trial_step' : "no",
         'accept_after_max_steps' : -1,
@@ -375,6 +354,8 @@ class IPOPTdriver(DriverUsesDerivatives):
         'recalc_y_feas_tol' : 1e-06,
         'slack_move' : 1.81899e-12,
         'constraint_violation_norm_type' : "1-norm",
+
+        # Warm Start.
         'warm_start_init_point' : "no",
         'warm_start_same_structure' : "no",
         'warm_start_bound_push' : 0.001,
@@ -384,8 +365,13 @@ class IPOPTdriver(DriverUsesDerivatives):
         'warm_start_mult_bound_push' : 0.001,
         'warm_start_mult_init_max' : 1e+06,
         'warm_start_entire_iterate' : "no",
-        'linear_system_scaling' : "mc19",
+
+        # Linear Solver.
+        #'linear_solver' : "mumps",  # Made into variable.
+        'linear_system_scaling' : "none",  # Had been "mc19", but not always available.
         'linear_scaling_on_demand' : "yes",
+
+        # Step Calculation.
         'mehrotra_algorithm' : "no",
         'fast_step_computation' : "no",
         'min_refinement_steps' : 1,
@@ -403,6 +389,8 @@ class IPOPTdriver(DriverUsesDerivatives):
         'jacobian_regularization_value' : 1e-08,
         'jacobian_regularization_exponent' : 0.25,
         'perturb_always_cd' : "no",
+
+        # Restoration Phase.
         'expect_infeasible_problem' : "no",
         'expect_infeasible_problem_ctol' : 0.001,
         'expect_infeasible_problem_ytol' : 1e+08,
@@ -417,6 +405,8 @@ class IPOPTdriver(DriverUsesDerivatives):
         'bound_mult_reset_threshold' : 1000.0,
         'constr_mult_reset_threshold' : 0.0,
         'resto_failure_feasibility_threshold' : 0.0,
+
+        # Derivative Checker.
         'derivative_test' : "none",
         'derivative_test_first_index' : -2,
         'derivative_test_perturbation' : 1e-08,
@@ -425,6 +415,8 @@ class IPOPTdriver(DriverUsesDerivatives):
         'jacobian_approximation' : "exact",
         'findiff_perturbation' : 1e-07,
         'point_perturbation_radius' : 10.0,
+
+        # Hessian Approximation.
         'limited_memory_aug_solver' : "sherman-morrison",
         'limited_memory_max_history' : 6,
         'limited_memory_update_type' : "bfgs",
@@ -434,8 +426,10 @@ class IPOPTdriver(DriverUsesDerivatives):
         'limited_memory_init_val_min' : 1e-08,
         'limited_memory_max_skipping' : 2,
         'limited_memory_special_for_resto' : "no",
-        'hessian_approximation' : "exact",
+        #'hessian_approximation' : "exact",  # Forced to "limited-memory"
         'hessian_approximation_space' : "nonlinear-variables",
+
+        # MA27 Linear Solver.
         'ma27_pivtol' : 1e-08,
         'ma27_pivtolmax' : 0.0001,
         'ma27_liw_init_factor' : 5.0,
@@ -443,14 +437,18 @@ class IPOPTdriver(DriverUsesDerivatives):
         'ma27_meminc_factor' : 10.0,
         'ma27_skip_inertia_check' : "no",
         'ma27_ignore_singularity' : "no",
+
+        # MA57 Linear Solver.
         'ma57_pivtol' : 1e-08,
         'ma57_pivtolmax' : 0.0001,
         'ma57_pre_alloc' : 1.05,
         'ma57_pivot_order' : 5,
-        'ma57_automatic_scaling' : "yes",
+        'ma57_automatic_scaling' : "yes",  # ipopt default is "no".
         'ma57_block_size' : 16,
         'ma57_node_amalgamation' : 16,
         'ma57_small_pivot_flag' : 0,
+
+        # Paridiso Linear Solver.
         'pardiso_matching_strategy' : "complete+2x2",
         'pardiso_redo_symbolic_fact_only_if_inertia_wrong' : "no",
         'pardiso_repeated_perturbation_means_singular' : "no",
@@ -467,6 +465,8 @@ class IPOPTdriver(DriverUsesDerivatives):
         'pardiso_iter_inverse_norm_factor' : 5e+06,
         'pardiso_iterative' : "no",
         'pardiso_max_droptol_corrections' : 4,
+
+        # Mumps Linear Solver.
         'mumps_pivtol' : 1e-06,
         'mumps_pivtolmax' : 0.1,
         'mumps_mem_percent' : 1000,
@@ -474,79 +474,70 @@ class IPOPTdriver(DriverUsesDerivatives):
         'mumps_pivot_order' : 7,
         'mumps_scaling' : 77,
         'mumps_dep_tol' : -1.0,
+
+        # MA28 Linear Solver.
         'ma28_pivtol' : 0.01,
+
+        # Uncategorized.
         'warm_start_target_mu' : 0.0,
         }, iotype='in',
-                   desc='List of additional optimization parameters' )
-    
+                   desc='Dictionary of additional optimization parameters' )
+
 
     def __init__(self):
         super(IPOPTdriver, self).__init__()
-        
-        # Ipopt does not provide the option
-        #   to let it compute derivatives.
-        # So a differentiator must always be used.
-        self.differentiator = FiniteDifference()
 
         self.iter_count = 0
 
         # define the IPOPTdriver's private variables
         # note, these are all resized in config_ipopt
-        
+
         self.design_vals = zeros(0, 'd')
-        self.constraint_vals = zeros(0, 'd' )        
         self.nlp = None
 
         self.num_params = 0
-        self.num_ineq_constraints = 0
         self.num_eq_constraints = 0
         self.num_constraints = 0
-        
-        self.obj = 0.0
-        # Lagrange multipliers for the upper and lower bound constraints
-        #  the pyipopt wrapper returns them to us. Need a place to
-        #  put the results but not used currently
-        self.zl = None  
-        self.zu = None        
 
-    def set_option(self,name,value):
-        '''Set one of the options in the large dict
-        of options'''
+        self.obj = 0.0
+
+        self._prev_parameters = None
+        self._saved_j = None
+
+    def set_option(self, name, value):
+        '''Set one of the options in the large dict of options'''
 
         if name in self.options:
             self.options[ name ] = value
-        else :
-            self.raise_exception( '%s is not a valid option for Ipopt' % name, ValueError )
-        
+        else:
+            self.raise_exception( '%s is not a valid option for Ipopt' % name,
+                                  ValueError )
 
     def start_iteration(self):
         """Perform initial setup before iteration loop begins."""
-        
+
+        self._prev_parameters = None
+        self._saved_j = None
         self._config_ipopt()
-        
+
         # get the initial values of the parameters
-        for i, val in enumerate(self.get_parameters().values()):
-            self.design_vals[i] = val.evaluate(self.parent)
-            
-        self.update_constraints()
-        
-        x_L = array( [ x.low for x in self.get_parameters().values() ] )
-        x_U = array( [ x.high for x in self.get_parameters().values() ] )
+        self.design_vals = self.eval_parameters(self.parent)
+
+        x_L = self.get_lower_bounds()
+        x_U = self.get_upper_bounds()
         # Ipopt treats equality and inequality constraints together.
-        # For equality constraints, just set the g_l and g_u to be
-        # equal. For this driver, the inequality constraints come
-        # first. g_l is set to 0.0 and g_l is set to the largest float.
-        # For the equality constraints, both g_l and g_u are set to zero.
-        g_L = zeros( self.num_constraints, 'd')
-        g_U = zeros( self.num_constraints, 'd')
-        for i in range( self.num_ineq_constraints ):
-            g_U[i] = sys.float_info.max
+        # For the equality constraints, both g_L and g_U are set to zero.
+        # For the inequality constraints, g_L is set to -(largest float) and
+        # g_U is set to zero.
+        g_L = zeros( self.num_constraints, 'd' )
+        g_U = zeros( self.num_constraints, 'd' )
+        g_L[self.num_eq_constraints:] = -sys.float_info.max
 
         # number of non zeros in Jacobian
-        nnzj = self.num_params * self.num_constraints 
+        nnzj = self.num_params * self.num_constraints
                            # of constraints. Assumed to be dense
         # number of non zeros in hessian
-        nnzh = self.num_params * ( self.num_params + 1 ) / 2 
+        nnzh = self.num_params * ( self.num_params + 1 ) / 2
 
         try:
             self.nlp = pyipopt.create(
@@ -555,26 +546,15 @@ class IPOPTdriver(DriverUsesDerivatives):
                nnzj, nnzh,
                eval_f, eval_grad_f,
                eval_g, eval_jac_g,
-               intermediate_callback
-               # f2py lets you pass extra args to
-               # callback functions
-               # http://cens.ioc.ee/projects/f2py2e/usersguide/
-               #     index.html#call-back-arguments
-               # We pass the driver itself to the callbacks
-               ### not using them for now
-               #             eval_f_extra_args = (self,),
-               #             eval_grad_f_extra_args = (self,),
-               #             eval_g_extra_args = (self,),
-               #             eval_jac_g_extra_args = (self,),
-               #             intermediate_cb_extra_args = (self,),
+               eval_h,  # Placeholder, should not be called.
+               functools.partial(apply_new, driver=self)
                )
-            
+
             self.nlp.set_intermediate_callback( intermediate_callback )
 
         except Exception, err:
             self._logger.error(str(err))
             raise
-
 
         # Set optimization options
         self.nlp.int_option( 'print_level', self.print_level )
@@ -584,7 +564,7 @@ class IPOPTdriver(DriverUsesDerivatives):
         self.nlp.num_option( 'constr_viol_tol', self.constr_viol_tol )
         self.nlp.num_option( 'obj_scaling_factor', self.obj_scaling_factor )
         self.nlp.str_option( 'linear_solver', self.linear_solver )
-        
+
         # Set optimization options set via the options dict
         for option, value in self.options.iteritems():
             if isinstance( value, int ):
@@ -594,13 +574,12 @@ class IPOPTdriver(DriverUsesDerivatives):
             elif isinstance( value, float ):
                 self.nlp.num_option( option, value )
             else:
-                self.raise_exception("Cannot handle option '%s' of type '%s'" \
-                                   % ( option, type(value)), ValueError)
-               
+                self.raise_exception("Cannot handle option '%s' of type '%s'"
+                                     % (option, type(value)), ValueError)
+
         # Ipopt does the Hessian calculation so we do not have to
         self.nlp.str_option( "hessian_approximation", "limited-memory" )
 
-        
     def continue_iteration(self):
         """Returns True if iteration should continue.
              Get info from the optimizer to see if it
@@ -608,85 +587,61 @@ class IPOPTdriver(DriverUsesDerivatives):
         """
 
         return self.iter_count == 0
-    
+
     def pre_iteration(self):
         """Checks or RunStopped and evaluates objective"""
-        
+
         super(IPOPTdriver, self).pre_iteration()
         if self._stop:
             self.raise_exception('Stop requested', RunStopped)
-            
+
     def run_iteration(self):
         """ The IPOPT driver iteration"""
-        
+
         try:
             ( self.design_vals,
-              self.zl, self.zu,
+              _zl, _zu, _lambda,  # lambda is a 'recent' addition
               self.obj,
               self.status ) = self.nlp.solve(self.design_vals, self)
 
         # so we can check for stops
-        except Exception, err:
+        except Exception as err:
             self._logger.error(str(err))
             raise
 
-        # update the parameters in the model
-        dvals = [float(val) for val in self.design_vals]
-        self.set_parameters(dvals)
+        # update the model if necessary
+        if self._prev_parameters is None or \
+           not (self.design_vals == self._prev_parameters).all():
+            self.set_parameters(self.design_vals)
+            super(IPOPTdriver, self).run_iteration()
 
-        # update the model
-        super(IPOPTdriver, self).run_iteration()
+        # release storage
+        self._prev_parameters = None
+        self._saved_j = None
 
-        
     def _config_ipopt(self):
         """Set up arrays, and perform some
         validation and make sure that array sizes are consistent.
         """
-        params = self.get_parameters().values()
-        
+
         # size arrays based on number of parameters
-        self.num_params = len(params)
+        self.num_params = self.total_parameters()
         self.design_vals = zeros(self.num_params, 'd')
 
         if self.num_params < 1:
             self.raise_exception('no parameters specified', RuntimeError)
-            
-        # size constraint related arrays
-        self.num_ineq_constraints = len( self.get_ineq_constraints() )
-        self.num_eq_constraints = len( self.get_eq_constraints() )
-        self.num_constraints = self.num_ineq_constraints + \
-                               self.num_eq_constraints
-        self.constraint_vals = zeros(self.num_constraints, 'd')
-        
 
-    def update_constraints( self ):
-        '''evaluate constraint functions'''
-    
-        i = 0
-        for v in self.get_ineq_constraints().values() :
-            val = v.evaluate(self.parent)
-    
-            # OpenMDAO accepts inequalities in any form, e.g.
-            #    x1 > x2 + 5
-            #    x1 + x2 < 22
-            #
-            # Need to take that kind of equation and put it in a form that
-            #  Ipopt wants. The simplest way is to handle this is to
-            #  turn those into
-            #    x1 -x2 - 5 > 0
-            #    x1 + x2 - 22 > 0
-            #  
-            if '>' in val[2]:
-                self.constraint_vals[i] = -(val[1]-val[0])
-            else:
-                self.constraint_vals[i] = -(val[0]-val[1])
-            i += 1
-            
-        for v in self.get_eq_constraints().values():
-            val = v.evaluate(self.parent)
-            self.constraint_vals[i] = val[1] - val[0]
-            i += 1
-            
-        return
-    
-    
+        # size constraint related arrays
+        self.num_eq_constraints = len( self.get_eq_constraints() )
+        self.num_constraints = self.num_eq_constraints + \
+                               len( self.get_ineq_constraints() )
+
+    def _recalc_j(self):
+        """Update _saved_j."""
+
+        inputs = self.list_param_group_targets()
+        obj    = self.list_objective_targets()
+        con    = self.list_constraint_targets()
+
+        self._saved_j = self.workflow.calc_gradient(inputs, obj + con)
+
