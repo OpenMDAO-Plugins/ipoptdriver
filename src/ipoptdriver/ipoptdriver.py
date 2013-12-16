@@ -97,24 +97,24 @@ def eval_jac_g(x, flag, driver):
         #   return (array([0, 0, 0, 0, 1, 1, 1, 1]),
         #           array([0, 1, 2, 3, 0, 1, 2, 3]))
 
-        irow = array( [[ ]] )
-        for i in range( driver.num_constraints ):
-            newrow = array( [ [i] * driver.num_params ] )
+        irow = array([[]])
+        for i in range(driver.num_constraints):
+            newrow = array([[i] * driver.num_params])
             if i:
-                irow = append( irow, newrow, axis=0 )
+                irow = append(irow, newrow, axis=0)
             else:
                 irow = newrow
 
-        jcol = array( [[ ]] )
-        prange = range( driver.num_params )
-        for i in range( driver.num_constraints ):
-            newrow = array( [ prange ] )
+        jcol = array([[]])
+        prange = range(driver.num_params)
+        for i in range(driver.num_constraints):
+            newrow = array([prange])
             if i:
-                jcol = append( jcol, newrow, axis=0 )
+                jcol = append(jcol, newrow, axis=0)
             else:
                 jcol = newrow
 
-        return ( irow, jcol )
+        return (irow, jcol)
 
     else:
         # Need to return jac_g with dimensions of
@@ -504,14 +504,18 @@ class IPOPTdriver(Driver):
         self._prev_parameters = None
         self._saved_j = None
 
+        self.inputs = None
+        self.obj = None
+        self.con = None
+
     def set_option(self, name, value):
         '''Set one of the options in the large dict of options'''
 
         if name in self.options:
-            self.options[ name ] = value
+            self.options[name] = value
         else:
-            self.raise_exception( '%s is not a valid option for Ipopt' % name,
-                                  ValueError )
+            self.raise_exception('%s is not a valid option for Ipopt' % name,
+                                 ValueError)
 
     def start_iteration(self):
         """Perform initial setup before iteration loop begins."""
@@ -529,15 +533,15 @@ class IPOPTdriver(Driver):
         # For the equality constraints, both g_L and g_U are set to zero.
         # For the inequality constraints, g_L is set to -(largest float) and
         # g_U is set to zero.
-        g_L = zeros( self.num_constraints, 'd' )
-        g_U = zeros( self.num_constraints, 'd' )
+        g_L = zeros(self.num_constraints, 'd')
+        g_U = zeros(self.num_constraints, 'd')
         g_L[self.num_eq_constraints:] = -sys.float_info.max
 
         # number of non zeros in Jacobian
         nnzj = self.num_params * self.num_constraints
                            # of constraints. Assumed to be dense
         # number of non zeros in hessian
-        nnzh = self.num_params * ( self.num_params + 1 ) / 2
+        nnzh = self.num_params * (self.num_params + 1) / 2
 
         try:
             self.nlp = pyipopt.create(
@@ -550,29 +554,29 @@ class IPOPTdriver(Driver):
                functools.partial(apply_new, driver=self)
                )
 
-            self.nlp.set_intermediate_callback( intermediate_callback )
+            self.nlp.set_intermediate_callback(intermediate_callback)
 
-        except Exception, err:
+        except Exception as err:
             self._logger.error(str(err))
             raise
 
         # Set optimization options
-        self.nlp.int_option( 'print_level', self.print_level )
-        self.nlp.num_option( 'tol', self.tol )
-        self.nlp.int_option( 'max_iter', self.max_iter )
-        self.nlp.num_option( 'max_cpu_time', self.max_cpu_time )
-        self.nlp.num_option( 'constr_viol_tol', self.constr_viol_tol )
-        self.nlp.num_option( 'obj_scaling_factor', self.obj_scaling_factor )
-        self.nlp.str_option( 'linear_solver', self.linear_solver )
+        self.nlp.int_option('print_level', self.print_level)
+        self.nlp.num_option('tol', self.tol)
+        self.nlp.int_option('max_iter', self.max_iter)
+        self.nlp.num_option('max_cpu_time', self.max_cpu_time)
+        self.nlp.num_option('constr_viol_tol', self.constr_viol_tol)
+        self.nlp.num_option('obj_scaling_factor', self.obj_scaling_factor)
+        self.nlp.str_option('linear_solver', self.linear_solver)
 
         # Set optimization options set via the options dict
         for option, value in self.options.iteritems():
-            if isinstance( value, int ):
-                self.nlp.int_option( option, value )
-            elif isinstance( value, str ):
-                self.nlp.str_option( option, value )
-            elif isinstance( value, float ):
-                self.nlp.num_option( option, value )
+            if isinstance(value, int):
+                self.nlp.int_option(option, value)
+            elif isinstance(value, str):
+                self.nlp.str_option(option, value)
+            elif isinstance(value, float):
+                self.nlp.num_option(option, value)
             else:
                 self.raise_exception("Cannot handle option '%s' of type '%s'"
                                      % (option, type(value)), ValueError)
@@ -599,10 +603,10 @@ class IPOPTdriver(Driver):
         """ The IPOPT driver iteration"""
 
         try:
-            ( self.design_vals,
-              _zl, _zu, _lambda,  # lambda is a 'recent' addition
-              self.obj,
-              self.status ) = self.nlp.solve(self.design_vals, self)
+            (self.design_vals,
+             _zl, _zu, _lambda,  # lambda is a 'recent' addition
+             self.obj,
+             self.status) = self.nlp.solve(self.design_vals, self)
 
         # so we can check for stops
         except Exception as err:
@@ -632,16 +636,17 @@ class IPOPTdriver(Driver):
             self.raise_exception('no parameters specified', RuntimeError)
 
         # size constraint related arrays
-        self.num_eq_constraints = len( self.get_eq_constraints() )
+        self.num_eq_constraints = self.total_eq_constraints()
         self.num_constraints = self.num_eq_constraints + \
-                               len( self.get_ineq_constraints() )
+                               self.total_ineq_constraints()
+
+        self.inputs = self.list_param_group_targets()
+        self.obj    = self.list_objective_targets()
+        self.con    = self.list_constraint_targets()
 
     def _recalc_j(self):
         """Update _saved_j."""
 
-        inputs = self.list_param_group_targets()
-        obj    = self.list_objective_targets()
-        con    = self.list_constraint_targets()
-
-        self._saved_j = self.workflow.calc_gradient(inputs, obj + con)
+        self._saved_j = self.workflow.calc_gradient(self.inputs,
+                                                    self.obj + self.con)
 
