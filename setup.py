@@ -55,6 +55,7 @@ kwargs = {'author': 'Herb Schilling',
                                   'sphinx_build/html/_static/websupport.js',
                                   'sphinx_build/html/_static/comment-close.png',
                                   'sphinx_build/html/_modules/index.html',
+                                  'sphinx_build/html/_modules/ipoptdriver/ipoptdriver.html',
                                   'sphinx_build/html/_modules/ipoptdriver/test/test_ipoptdriver.html',
                                   'test/__init__.py',
                                   'test/openmdao_log.txt',
@@ -62,7 +63,7 @@ kwargs = {'author': 'Herb Schilling',
  'package_dir': {'': 'src'},
  'packages': ['ipoptdriver', 'ipoptdriver.test'],
  'url': 'https://github.com/OpenMDAO-Plugins/ipoptdriver',
- 'version': '0.14',
+ 'version': '0.15',
  'zip_safe': False}
 
 
