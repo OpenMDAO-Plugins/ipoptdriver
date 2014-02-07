@@ -452,7 +452,6 @@ class IPOPTdriver(Driver):
         'pardiso_matching_strategy' : "complete+2x2",
         'pardiso_redo_symbolic_fact_only_if_inertia_wrong' : "no",
         'pardiso_repeated_perturbation_means_singular' : "no",
-        'pardiso_out_of_core_power' : 0,
         'pardiso_msglvl' : 0,
         'pardiso_skip_inertia_check' : "no",
         'pardiso_max_iter' : 500,
@@ -519,6 +518,9 @@ class IPOPTdriver(Driver):
 
     def start_iteration(self):
         """Perform initial setup before iteration loop begins."""
+
+        # Inital run to make sure the workflow executes
+        super(IPOPTdriver, self).run_iteration()
 
         self._prev_parameters = None
         self._saved_j = None

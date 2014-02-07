@@ -38,9 +38,12 @@ try:
 except ImportError:
     pass
 
-from openmdao.main.api import Assembly, Component, set_as_top
+from openmdao.main.api import Assembly, Component, set_as_top, Driver
 from openmdao.lib.datatypes.api import Float, Array
 from openmdao.util.testutil import assert_rel_error
+from openmdao.main.interfaces import IHasParameters, implements
+from openmdao.main.hasparameters import HasParameters
+from openmdao.util.decorators import add_delegate
 
 
 class OptRosenSuzukiComponent(Component):
@@ -501,6 +504,57 @@ class IPOPTdriverParaboloidTestCase(unittest.TestCase):
             self.fail('TypeError expected')
 
         self.assertEqual(0, self.top.driver.status)
+
+
+    def test_initial_run(self):
+        # Test to make sure fix that put run_iteration
+        #   at the top of the execute method is in place and working
+
+        try:
+            from ipoptdriver.ipoptdriver import IPOPTdriver, IpoptReturnStatus
+        except ImportError:
+            raise SkipTest("this test requires IPOPT to be installed")  
+
+
+        class MyComp(Component):
+
+            x = Float(0.0, iotype='in', low=-10, high=10)
+            xx = Float(0.0, iotype='in', low=-10, high=10)
+            f_x = Float(iotype='out')
+            y = Float(iotype='out')
+
+            def execute(self):
+                if self.xx != 1.0:
+                    self.raise_exception("Lazy", RuntimeError)
+                self.f_x = 2.0*self.x
+                self.y = self.x
+
+        @add_delegate(HasParameters)
+        class SpecialDriver(Driver):
+
+            implements(IHasParameters)
+
+            def execute(self):
+                self.set_parameters([1.0])
+
+        top = set_as_top(Assembly())
+        top.add('comp', MyComp())
+
+        top.driver.title = 'Little Test'
+
+        top.add('driver', IPOPTdriver())
+        top.driver.print_level = 0
+        top.driver.set_option('suppress_all_output', 'yes')
+        top.add('subdriver', SpecialDriver())
+        top.driver.workflow.add('subdriver')
+        top.subdriver.workflow.add('comp')
+
+        top.subdriver.add_parameter('comp.xx')
+        top.driver.add_parameter('comp.x')
+        top.driver.add_constraint('comp.y > 1.0')
+        top.driver.add_objective('comp.f_x')
+
+        top.run()
 
     
 class IPOPTdriverParaboloidWithLinearConstraintTestCase(unittest.TestCase):
