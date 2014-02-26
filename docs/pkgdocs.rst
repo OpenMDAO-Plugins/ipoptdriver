@@ -18,18 +18,23 @@ Package Metadata
 
     [openmdao.component]
     ipoptdriver.test.test_ipoptdriver.ParaboloidComponent=ipoptdriver.test.test_ipoptdriver:ParaboloidComponent
-    ipoptdriver.test.test_ipoptdriver.OptRosenSuzukiComponent=ipoptdriver.test.test_ipoptdriver:OptRosenSuzukiComponent
+    ipoptdriver.test.test_ipoptdriver.MyComp=ipoptdriver.test.test_ipoptdriver:MyComp
     ipoptdriver.ipoptdriver.IPOPTdriver=ipoptdriver.ipoptdriver:IPOPTdriver
     ipoptdriver.test.test_ipoptdriver.Example1FromManualComponent=ipoptdriver.test.test_ipoptdriver:Example1FromManualComponent
     ipoptdriver.test.test_ipoptdriver.ConstrainedBettsComponent=ipoptdriver.test.test_ipoptdriver:ConstrainedBettsComponent
+    ipoptdriver.test.test_ipoptdriver.SpecialDriver=ipoptdriver.test.test_ipoptdriver:SpecialDriver
+    ipoptdriver.test.test_ipoptdriver.OptRosenSuzukiComponent=ipoptdriver.test.test_ipoptdriver:OptRosenSuzukiComponent
     [openmdao.driver]
     ipoptdriver.ipoptdriver.IPOPTdriver=ipoptdriver.ipoptdriver:IPOPTdriver
+    ipoptdriver.test.test_ipoptdriver.SpecialDriver=ipoptdriver.test.test_ipoptdriver:SpecialDriver
     [openmdao.container]
     ipoptdriver.test.test_ipoptdriver.ParaboloidComponent=ipoptdriver.test.test_ipoptdriver:ParaboloidComponent
-    ipoptdriver.test.test_ipoptdriver.OptRosenSuzukiComponent=ipoptdriver.test.test_ipoptdriver:OptRosenSuzukiComponent
+    ipoptdriver.test.test_ipoptdriver.MyComp=ipoptdriver.test.test_ipoptdriver:MyComp
     ipoptdriver.ipoptdriver.IPOPTdriver=ipoptdriver.ipoptdriver:IPOPTdriver
     ipoptdriver.test.test_ipoptdriver.Example1FromManualComponent=ipoptdriver.test.test_ipoptdriver:Example1FromManualComponent
     ipoptdriver.test.test_ipoptdriver.ConstrainedBettsComponent=ipoptdriver.test.test_ipoptdriver:ConstrainedBettsComponent
+    ipoptdriver.test.test_ipoptdriver.SpecialDriver=ipoptdriver.test.test_ipoptdriver:SpecialDriver
+    ipoptdriver.test.test_ipoptdriver.OptRosenSuzukiComponent=ipoptdriver.test.test_ipoptdriver:OptRosenSuzukiComponent
 
 - **home-page:** https://github.com/OpenMDAO-Plugins/ipoptdriver
 
@@ -58,5 +63,5 @@ Package Metadata
 
 - **summary:** Openmdao driver wrapper for the Ipopt optimization code
 
-- **version:** 0.15
+- **version:** 0.16
 
