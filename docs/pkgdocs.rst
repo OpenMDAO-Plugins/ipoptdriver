@@ -63,5 +63,5 @@ Package Metadata
 
 - **summary:** Openmdao driver wrapper for the Ipopt optimization code
 
-- **version:** 0.16
+- **version:** 0.17
 

@@ -145,7 +145,6 @@ def intermediate_callback(alg_mod, iteration, obj_value, inf_pr, inf_du,
     # Incrementing the count here gets a true value of the iterations
     #   done by Ipopt
     driver.iter_count += 1
-    driver.record_case()
 
     return not driver._stop
 
@@ -174,19 +173,19 @@ class IPOPTdriver(Driver):
                    desc='Maximum number of iterations')
 
     max_cpu_time = Float(1.0e6, iotype='in', low=0.0,
-                         desc='limit on CPU seconds' )
+                         desc='limit on CPU seconds')
 
     constr_viol_tol = Float(0.0001, iotype='in', low=0.0,
-                            desc='absolute tolerance on constraint violation' )
+                            desc='absolute tolerance on constraint violation')
 
     obj_scaling_factor = Float(1.0, iotype='in',
                                desc='scaling factor for the objective function')
 
     # Previous default of 'ma27' isn't always available.
     linear_solver = Enum('mumps',
-                         [ 'ma27', 'ma57', 'ma77',
-                           'pardiso', 'wsmp', 'mumps', 'custom'],
-                         iotype='in', desc='linear algebra package used' )
+                         ['ma27', 'ma57', 'ma77',
+                          'pardiso', 'wsmp', 'mumps', 'custom'],
+                         iotype='in', desc='linear algebra package used')
 
     status = Enum(IpoptReturnStatus.Undefined,
                   [
@@ -197,14 +196,14 @@ class IPOPTdriver(Driver):
         IpoptReturnStatus.Diverging_Iterates,
         IpoptReturnStatus.User_Requested_Stop,
         IpoptReturnStatus.Feasible_Point_Found,
-        IpoptReturnStatus.Maximum_Iterations_Exceeded ,
-        IpoptReturnStatus.Restoration_Failed ,
-        IpoptReturnStatus.Error_In_Step_Computation ,
-        IpoptReturnStatus.Maximum_CpuTime_Exceeded ,
-        IpoptReturnStatus.Not_Enough_Degrees_Of_Freedom ,
-        IpoptReturnStatus.Invalid_Problem_Definition ,
-        IpoptReturnStatus.Invalid_Option ,
-        IpoptReturnStatus.Invalid_Number_Detected ,
+        IpoptReturnStatus.Maximum_Iterations_Exceeded,
+        IpoptReturnStatus.Restoration_Failed,
+        IpoptReturnStatus.Error_In_Step_Computation,
+        IpoptReturnStatus.Maximum_CpuTime_Exceeded,
+        IpoptReturnStatus.Not_Enough_Degrees_Of_Freedom,
+        IpoptReturnStatus.Invalid_Problem_Definition,
+        IpoptReturnStatus.Invalid_Option,
+        IpoptReturnStatus.Invalid_Number_Detected,
         IpoptReturnStatus.Unrecoverable_Exception,
         IpoptReturnStatus.NonIpopt_Exception_Thrown,
         IpoptReturnStatus.Insufficient_Memory,
@@ -212,12 +211,12 @@ class IPOPTdriver(Driver):
         IpoptReturnStatus.Undefined,
         ],
                   iotype='out',
-                  desc='Ipopt return code indicating status of optimization result' )
+                  desc='Ipopt return code indicating status of optimization result')
 
     # Available options can be listed by 'ipopt --print-options'.
     options = Dict({
         # this would just turn off copyright banner
-        #    self.nlp.str_option( "sb", 'yes' )
+        #    self.nlp.str_option("sb", 'yes')
         # to suppress all output set the following to 'yes'
         'suppress_all_output': 'no',
 
@@ -480,7 +479,7 @@ class IPOPTdriver(Driver):
         # Uncategorized.
         'warm_start_target_mu' : 0.0,
         }, iotype='in',
-                   desc='Dictionary of additional optimization parameters' )
+                   desc='Dictionary of additional optimization parameters')
 
 
     def __init__(self):
@@ -584,7 +583,7 @@ class IPOPTdriver(Driver):
                                      % (option, type(value)), ValueError)
 
         # Ipopt does the Hessian calculation so we do not have to
-        self.nlp.str_option( "hessian_approximation", "limited-memory" )
+        self.nlp.str_option("hessian_approximation", "limited-memory")
 
     def continue_iteration(self):
         """Returns True if iteration should continue.
