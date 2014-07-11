@@ -2,15 +2,15 @@
 Test the IPOPT optimizer component using a variety of
   problems and special cases.
 
-Problem                     | Objective | nvars | Lin Cons | Nonlin Cons | 
+Problem                     | Objective | nvars | Lin Cons | Nonlin Cons |
 ==========================================================================
-Rosen Suzuki                | nonlinear |   4   |    0     |      3      | 
-NEWSUMT Manual #1           | linear    |   2   |    2     |      1      | 
-Constrained Betts           | nonlinear |   2   |    1     |      0      | 
-Paraboloid                  | nonlinear |   2   |    0     |      0      ! 
-Paraboloid w lin constraint | nonlinear |   2   |    1     |      0      | 
-Paraboloid w lin constraint | nonlinear |   2   |  1 and 3 |      0      | 
-Paraboloid w non-lin const  | nonlinear |   2   |    0     |   1 and 3   | 
+Rosen Suzuki                | nonlinear |   4   |    0     |      3      |
+NEWSUMT Manual #1           | linear    |   2   |    2     |      1      |
+Constrained Betts           | nonlinear |   2   |    1     |      0      |
+Paraboloid                  | nonlinear |   2   |    0     |      0      !
+Paraboloid w lin constraint | nonlinear |   2   |    1     |      0      |
+Paraboloid w lin constraint | nonlinear |   2   |  1 and 3 |      0      |
+Paraboloid w non-lin const  | nonlinear |   2   |    0     |   1 and 3   |
 
 """
 
@@ -49,21 +49,21 @@ from openmdao.util.decorators import add_delegate
 class OptRosenSuzukiComponent(Component):
     """ From the NEWSUMT User's Manual:
     EXAMPLE 2 - CONSTRAINED ROSEN-SUZUKI FUNCTION. NO GRADIENT INFORMATION.
-    
+
          MINIMIZE OBJ = X(1)**2 - 5*X(1) + X(2)**2 - 5*X(2) +
                         2*X(3)**2 - 21*X(3) + X(4)**2 + 7*X(4) + 50
-    
+
          Subject to:
-    
+
               G(1) = X(1)**2 + X(1) + X(2)**2 - X(2) +
                      X(3)**2 + X(3) + X(4)**2 - X(4) - 8   .LE.0
-    
+
               G(2) = X(1)**2 - X(1) + 2*X(2)**2 + X(3)**2 +
                      2*X(4)**2 - X(4) - 10                  .LE.0
-    
+
               G(3) = 2*X(1)**2 + 2*X(1) + X(2)**2 - X(2) +
                      X(3)**2 - X(4) - 5                     .LE.0
-                     
+
     This problem is solved beginning with an initial X-vector of
          X = (1.0, 1.0, 1.0, 1.0)
     The optimum design is known to be
@@ -71,19 +71,19 @@ class OptRosenSuzukiComponent(Component):
     and the corresponding X-vector is
          X = (0.0, 1.0, 2.0, -1.0)
     """
-    
+
     x = Array(iotype='in')
     g = Array([1., 1., 1.], iotype='out')
     result = Float(iotype='out')
-    
+
     def __init__(self):
         """Initialize"""
-        
+
         super(OptRosenSuzukiComponent, self).__init__()
         # Initial guess
         self.x = numpy.array([1., 1., 1., 1.], dtype=float)
         self.result = 0.
-        
+
         self.opt_objective = 6.
         self.opt_design_vars = [0., 1., 2., -1.]
 
@@ -102,20 +102,19 @@ class OptRosenSuzukiComponent(Component):
                      x[2]**2 - x[3] - 5)
 
 
-
 class Example1FromManualComponent(Component):
     """ From the NEWSUMT User's Manual:
 
          EXAMPLE 1
-    
+
          MINIMIZE OBJ = 10.0 * X(1) + X(2)
-    
+
          Subject to:
-    
+
               G(1) = 2.0 * X(1) - X(2) - 1.0 > 0
-              G(2) = X(1) - 2.0 * X(2) + 1.0 > 0    
+              G(2) = X(1) - 2.0 * X(2) + 1.0 > 0
               G(3) = - X(1)**2 + 2.0 * ( X(1) + X(2) ) - 1.0 > 0
-                     
+
     This problem is solved beginning with an initial X-vector of
          X = (2.0, 1.0)
     The optimum design is known to be
@@ -123,43 +122,42 @@ class Example1FromManualComponent(Component):
     and the corresponding X-vector is
          X = (0.5515, 0.1006)
     """
-    
+
     x = Array(iotype='in')
     result = Float(iotype='out')
-    
+
     def __init__(self):
         """Initialize"""
-        
+
         super(Example1FromManualComponent, self).__init__()
         # Initial guess
         self.x = numpy.array([2.0, 1.0], dtype=float)
 
         self.result = 0.0
-        
+
         self.opt_objective = 5.5917
         self.opt_design_vars = [0.5515, 0.1006]
 
     def execute(self):
         """calculate the new objective value"""
-        
+
         self.result = 10.0*self.x[0] + self.x[1]
 
 
-
 class ParaboloidComponent(Component):
-    """     
+    """
          MINIMIZE OBJ = ( X(1) - 2.0 ) ** 2 +  ( X(2) - 3.0 ) **2
     """
-    
+
     x = Array(iotype='in')
     result = Float(iotype='out')
-    
+
     def __init__(self):
         super(ParaboloidComponent, self).__init__()
         self.x = numpy.array([10., 10.], dtype=float) # initial guess
 
         self.result = 0.
-        
+
         self.opt_objective = 0.
         self.opt_design_vars = [2., 3.]
 
@@ -168,16 +166,15 @@ class ParaboloidComponent(Component):
         self.result = (self.x[0] - 2.0)**2 + (self.x[1] - 3.0)**2
 
 
-
 class ConstrainedBettsComponent(Component):
-    """     
+    """
          MINIMIZE OBJ = 0.01 * x(1) **2 + x(2) ** 2 - 100.0
-    
+
          Subject to:
 
               2 <= x(1) <= 50
             -50 <= x(2) <= 50
-    
+
               10 * x(1) - x(2) >= 10.0
 
                   or
@@ -187,23 +184,23 @@ class ConstrainedBettsComponent(Component):
                   or
 
               - 10.0 + 10.0 * x(1) - x(2) >= 0.0
-                     
+
     This problem is solved beginning with an initial X-vector of
          X = (-1.0, - 1.0 )
     The optimum design is known to be
-         OBJ = - 99.96 
+         OBJ = - 99.96
     and the corresponding X-vector is
          X = (2.0, 0.0 )
     """
-    
+
     x = Array(iotype='in')
     result = Float(iotype='out')
-    
+
     def __init__(self):
         super(ConstrainedBettsComponent, self).__init__()
         self.x = numpy.array([-1.0, -1.0], dtype=float) # initial guess
         self.result = 0.
-        
+
         self.opt_objective = -99.96
         self.opt_design_vars = [2.0, 0.0]
 
@@ -213,19 +210,18 @@ class ConstrainedBettsComponent(Component):
         self.result = 0.01*self.x[0]**2 + self.x[1]**2 - 100.0
 
 
-
 class IPOPTdriverParaboloidTestCase(unittest.TestCase):
     """test IPOPT optimizer component using an unconstrained
     paraboloid function"""
 
     def setUp(self):
         '''setup'''
-        
+
         try:
             from ipoptdriver.ipoptdriver import IPOPTdriver, IpoptReturnStatus
         except ImportError:
-            raise SkipTest("this test requires IPOPT to be installed")  
-        
+            raise SkipTest("this test requires IPOPT to be installed")
+
         self.top = set_as_top(Assembly())
         self.top.add('comp', ParaboloidComponent())
         self.top.add('driver', IPOPTdriver())
@@ -233,12 +229,12 @@ class IPOPTdriverParaboloidTestCase(unittest.TestCase):
 
         self.top.driver.print_level = 0
         self.top.driver.set_option('suppress_all_output', 'yes')
-        
-        map(self.top.driver.add_constraint, [])    
-        
+
+        map(self.top.driver.add_constraint, [])
+
     def tearDown(self):
         '''tear down'''
-        
+
         self.top = None
 
     def standard_setup(self):
@@ -251,13 +247,13 @@ class IPOPTdriverParaboloidTestCase(unittest.TestCase):
     def test_opt1(self):
 
         self.standard_setup()
-        
+
         self.top.run()
-        self.assertAlmostEqual(self.top.comp.opt_objective, 
+        self.assertAlmostEqual(self.top.comp.opt_objective,
                                self.top.driver.eval_objective(), places=2)
-        self.assertAlmostEqual(self.top.comp.opt_design_vars[0], 
+        self.assertAlmostEqual(self.top.comp.opt_design_vars[0],
                                self.top.comp.x[0], places=2)
-        self.assertAlmostEqual(self.top.comp.opt_design_vars[1], 
+        self.assertAlmostEqual(self.top.comp.opt_design_vars[1],
                                self.top.comp.x[1], places=2)
         self.assertEqual(IpoptReturnStatus.Solve_Succeeded,
                          self.top.driver.status)
@@ -267,11 +263,11 @@ class IPOPTdriverParaboloidTestCase(unittest.TestCase):
         self.top.driver.add_objective('comp.result')
         self.top.driver.add_parameter('comp.x', -100.0, 100.0, fd_step=.00001)
         self.top.run()
-        self.assertAlmostEqual(self.top.comp.opt_objective, 
+        self.assertAlmostEqual(self.top.comp.opt_objective,
                                self.top.driver.eval_objective(), places=2)
-        self.assertAlmostEqual(self.top.comp.opt_design_vars[0], 
+        self.assertAlmostEqual(self.top.comp.opt_design_vars[0],
                                self.top.comp.x[0], places=2)
-        self.assertAlmostEqual(self.top.comp.opt_design_vars[1], 
+        self.assertAlmostEqual(self.top.comp.opt_design_vars[1],
                                self.top.comp.x[1], places=2)
         self.assertEqual(IpoptReturnStatus.Solve_Succeeded,
                          self.top.driver.status)
@@ -297,7 +293,7 @@ class IPOPTdriverParaboloidTestCase(unittest.TestCase):
             '- ( comp.x[0] + 1.0 ) **2 - ( comp.x[1] - 3.0 )**2 + 4.0 > 0.0',
             '- ( comp.x[0] + 2.0 ) **2 - ( comp.x[1] - 3.0 )**2 + 9.0 > 0.0',
             ])
-        
+
         self.top.run()
 
         self.assertAlmostEqual(1.0, self.top.driver.eval_objective(), places=2)
@@ -306,9 +302,9 @@ class IPOPTdriverParaboloidTestCase(unittest.TestCase):
 
     def test_invalid_parameter_name(self):
         'Test an invalid parameter name'
-        
+
         self.standard_setup()
-        
+
         try:
             self.top.driver.set_option('invalid_parameter_name', 0)
             #self.top.run()
@@ -320,9 +316,9 @@ class IPOPTdriverParaboloidTestCase(unittest.TestCase):
 
         self.assertEqual(IpoptReturnStatus.Undefined, self.top.driver.status)
 
-    
+
     def test_no_parameters(self):
-        
+
         self.top.driver.add_objective('comp.result')
         try:
             self.top.run()
@@ -333,13 +329,13 @@ class IPOPTdriverParaboloidTestCase(unittest.TestCase):
 
         self.assertEqual(IpoptReturnStatus.Undefined, self.top.driver.status)
 
-    
+
     def test_invalid_parameter_type(self):
         # Check to see if we pass in a dictionary
         #   as one of the Ipopt options
-        
+
         self.standard_setup()
-        
+
         self.top.driver.set_option('hessian_constant', {})
         try:
             self.top.run()
@@ -351,7 +347,7 @@ class IPOPTdriverParaboloidTestCase(unittest.TestCase):
         self.assertEqual(IpoptReturnStatus.Undefined, self.top.driver.status)
 
     def test_invalid_parameter_value(self):
-        
+
         self.standard_setup()
 
         try:
@@ -368,7 +364,7 @@ class IPOPTdriverParaboloidTestCase(unittest.TestCase):
         else:
             self.fail('ValueError expected')
         self.assertEqual(IpoptReturnStatus.Undefined, self.top.driver.status)
-    
+
 
     def test_max_iteration_too_low(self):
 
@@ -377,7 +373,7 @@ class IPOPTdriverParaboloidTestCase(unittest.TestCase):
         self.top.driver.print_level = 0
         self.top.driver.set_option('suppress_all_output', 'yes')
         self.top.driver.max_iter = 1
-        
+
         self.top.run()
         self.assertEqual(IpoptReturnStatus.Maximum_Iterations_Exceeded,
                          self.top.driver.status)
@@ -386,14 +382,14 @@ class IPOPTdriverParaboloidTestCase(unittest.TestCase):
 
         self.standard_setup()
 
-        self.top.driver.print_level = 0 
+        self.top.driver.print_level = 0
         self.top.driver.set_option('suppress_all_output', 'yes')
         self.top.driver.max_cpu_time = 0.000001
-        
+
         self.top.run()
         self.assertEqual(IpoptReturnStatus.Maximum_CpuTime_Exceeded,
                          self.top.driver.status)
-    
+
     def test_using_mumps_linear_solver(self):
 
         self.standard_setup()
@@ -401,17 +397,17 @@ class IPOPTdriverParaboloidTestCase(unittest.TestCase):
         self.top.driver.print_level = 0
         self.top.driver.set_option('suppress_all_output', 'yes')
         self.top.driver.linear_solver = 'mumps'
-        
+
         self.top.run()
-        self.assertAlmostEqual(self.top.comp.opt_objective, 
+        self.assertAlmostEqual(self.top.comp.opt_objective,
                                self.top.driver.eval_objective(), places=2)
-        self.assertAlmostEqual(self.top.comp.opt_design_vars[0], 
+        self.assertAlmostEqual(self.top.comp.opt_design_vars[0],
                                self.top.comp.x[0], places=2)
-        self.assertAlmostEqual(self.top.comp.opt_design_vars[1], 
+        self.assertAlmostEqual(self.top.comp.opt_design_vars[1],
                                self.top.comp.x[1], places=2)
         self.assertEqual(IpoptReturnStatus.Solve_Succeeded,
                          self.top.driver.status)
-   
+
     def test_setting_obj_scaling_factor(self):
 
         self.standard_setup()
@@ -419,13 +415,13 @@ class IPOPTdriverParaboloidTestCase(unittest.TestCase):
         self.top.driver.print_level = 0
         self.top.driver.set_option('suppress_all_output', 'yes')
         self.top.driver.obj_scaling_factor = 1.0+6
-        
+
         self.top.run()
-        self.assertAlmostEqual(self.top.comp.opt_objective, 
+        self.assertAlmostEqual(self.top.comp.opt_objective,
                                self.top.driver.eval_objective(), places=2)
-        self.assertAlmostEqual(self.top.comp.opt_design_vars[0], 
+        self.assertAlmostEqual(self.top.comp.opt_design_vars[0],
                                self.top.comp.x[0], places=2)
-        self.assertAlmostEqual(self.top.comp.opt_design_vars[1], 
+        self.assertAlmostEqual(self.top.comp.opt_design_vars[1],
                                self.top.comp.x[1], places=2)
         self.assertEqual(IpoptReturnStatus.Solve_Succeeded,
                          self.top.driver.status)
@@ -444,7 +440,7 @@ class IPOPTdriverParaboloidTestCase(unittest.TestCase):
         # numpy throws an overflow warning that clutters
         #  up the test output
         numpy.seterr(over='ignore')
-        
+
         self.top.run()
 
         numpy.seterr(over='warn')
@@ -453,7 +449,7 @@ class IPOPTdriverParaboloidTestCase(unittest.TestCase):
                          self.top.driver.status)
 
     def test_invalid_linear_solver(self):
-        
+
         self.standard_setup()
 
         try:
@@ -469,7 +465,7 @@ class IPOPTdriverParaboloidTestCase(unittest.TestCase):
         self.assertEqual(IpoptReturnStatus.Undefined, self.top.driver.status)
 
     def test_add_option_wrappers(self):
-        
+
         self.standard_setup()
 
         self.top.run() # need to do this so we get nlp set
@@ -477,7 +473,7 @@ class IPOPTdriverParaboloidTestCase(unittest.TestCase):
         try:
             self.top.driver.nlp.str_option('linear_solver', 44)
         except TypeError as err:
-            self.assertEqual(str(err), "must be string, not int") 
+            self.assertEqual(str(err), "must be string, not int")
         else:
             self.fail('TypeError expected')
 
@@ -492,14 +488,14 @@ class IPOPTdriverParaboloidTestCase(unittest.TestCase):
         try:
             self.top.driver.nlp.num_option('max_cpu_time', 'string')
         except TypeError as err:
-            self.assertEqual(str(err), "a float is required") 
+            self.assertEqual(str(err), "a float is required")
         else:
             self.fail('TypeError expected')
 
         try:
             self.top.driver.nlp.int_option('max_iter', 'string')
         except TypeError as err:
-            self.assertEqual(str(err), "an integer is required") 
+            self.assertEqual(str(err), "an integer is required")
         else:
             self.fail('TypeError expected')
 
@@ -513,7 +509,7 @@ class IPOPTdriverParaboloidTestCase(unittest.TestCase):
         try:
             from ipoptdriver.ipoptdriver import IPOPTdriver, IpoptReturnStatus
         except ImportError:
-            raise SkipTest("this test requires IPOPT to be installed")  
+            raise SkipTest("this test requires IPOPT to be installed")
 
 
         class MyComp(Component):
@@ -556,26 +552,26 @@ class IPOPTdriverParaboloidTestCase(unittest.TestCase):
 
         top.run()
 
-    
+
 class IPOPTdriverParaboloidWithLinearConstraintTestCase(unittest.TestCase):
     """test IPOPT optimizer component using a
     paraboloid function constrained by a linear constraint"""
 
     def setUp(self):
         '''setUp'''
-        
+
         try:
             from ipoptdriver.ipoptdriver import IPOPTdriver, IpoptReturnStatus
         except ImportError:
-            raise SkipTest("this test requires IPOPT to be installed")  
-        
+            raise SkipTest("this test requires IPOPT to be installed")
+
         self.top = set_as_top(Assembly())
         self.top.add('comp', ParaboloidComponent())
         self.top.add('driver', IPOPTdriver())
         self.top.driver.workflow.add('comp')
         self.top.driver.set_option('suppress_all_output', 'yes')
         self.top.driver.print_level = 0
-        
+
     def tearDown(self):
         ''' tear down'''
 
@@ -620,12 +616,12 @@ class IPOPTdriverParaboloidWithLinearEqualityTestCase(unittest.TestCase):
 
     def setUp(self):
         '''setUp'''
-        
+
         try:
             from ipoptdriver.ipoptdriver import IPOPTdriver, IpoptReturnStatus
         except ImportError:
-            raise SkipTest("this test requires IPOPT to be installed")  
-        
+            raise SkipTest("this test requires IPOPT to be installed")
+
         self.top = set_as_top(Assembly())
         self.top.add('comp', ParaboloidComponent())
         self.top.add('driver', IPOPTdriver())
@@ -663,7 +659,7 @@ class IPOPTdriverParaboloidWithLinearEqualityTestCase(unittest.TestCase):
             '- ( comp.x[0] - 2.0 )**2 - ( comp.x[1] - 3.0 )**2 + 4.0 > 0.0',
             'comp.x[0] - 4.0 = 0.0',
             ])
-        
+
         self.top.run()
         self.assertAlmostEqual(4.0, self.top.driver.eval_objective(), places=2)
         self.assertAlmostEqual(4.0, self.top.comp.x[0], places=2)
@@ -703,8 +699,8 @@ class IPOPTdriverRosenSuzukiTestCase(unittest.TestCase):
         try:
             from ipoptdriver.ipoptdriver import IPOPTdriver, IpoptReturnStatus
         except ImportError:
-            raise SkipTest("this test requires IPOPT to be installed")  
-        
+            raise SkipTest("this test requires IPOPT to be installed")
+
         self.top = set_as_top(Assembly())
         self.top.add('comp', OptRosenSuzukiComponent())
         self.top.add('driver', IPOPTdriver())
@@ -715,7 +711,7 @@ class IPOPTdriverRosenSuzukiTestCase(unittest.TestCase):
     def tearDown(self):
         '''tear down'''
         self.top = None
-        
+
     def test_opt1(self):
         # Scalar parameters and constraints.
         self.top.driver.add_objective('comp.result')
@@ -732,25 +728,25 @@ class IPOPTdriverRosenSuzukiTestCase(unittest.TestCase):
         map(self.top.driver.add_constraint, [
             'comp.x[0]**2+comp.x[0]+comp.x[1]**2-comp.x[1]' + \
             '+comp.x[2]**2+comp.x[2]+comp.x[3]**2-comp.x[3] < 8',
-            
+
             'comp.x[0]**2-comp.x[0]+2*comp.x[1]**2+comp.x[2]**2' + \
             '+2*comp.x[3]**2-comp.x[3] < 10',
-            
+
             '2*comp.x[0]**2+2*comp.x[0]+comp.x[1]**2' + \
             '-comp.x[1]+comp.x[2]**2-comp.x[3] < 5']
             )
 
         self.top.run()
 
-        self.assertAlmostEqual(self.top.comp.opt_objective, 
+        self.assertAlmostEqual(self.top.comp.opt_objective,
                                self.top.driver.eval_objective(), places=2)
-        self.assertAlmostEqual(self.top.comp.opt_design_vars[0], 
+        self.assertAlmostEqual(self.top.comp.opt_design_vars[0],
                                self.top.comp.x[0], places=1)
-        self.assertAlmostEqual(self.top.comp.opt_design_vars[1], 
+        self.assertAlmostEqual(self.top.comp.opt_design_vars[1],
                                self.top.comp.x[1], places=2)
-        self.assertAlmostEqual(self.top.comp.opt_design_vars[2], 
+        self.assertAlmostEqual(self.top.comp.opt_design_vars[2],
                                self.top.comp.x[2], places=2)
-        self.assertAlmostEqual(self.top.comp.opt_design_vars[3], 
+        self.assertAlmostEqual(self.top.comp.opt_design_vars[3],
                                self.top.comp.x[3], places=1)
 
     def test_opt1_a(self):
@@ -761,15 +757,15 @@ class IPOPTdriverRosenSuzukiTestCase(unittest.TestCase):
 
         self.top.run()
 
-        self.assertAlmostEqual(self.top.comp.opt_objective, 
+        self.assertAlmostEqual(self.top.comp.opt_objective,
                                self.top.driver.eval_objective(), places=2)
-        self.assertAlmostEqual(self.top.comp.opt_design_vars[0], 
+        self.assertAlmostEqual(self.top.comp.opt_design_vars[0],
                                self.top.comp.x[0], places=1)
-        self.assertAlmostEqual(self.top.comp.opt_design_vars[1], 
+        self.assertAlmostEqual(self.top.comp.opt_design_vars[1],
                                self.top.comp.x[1], places=2)
-        self.assertAlmostEqual(self.top.comp.opt_design_vars[2], 
+        self.assertAlmostEqual(self.top.comp.opt_design_vars[2],
                                self.top.comp.x[2], places=2)
-        self.assertAlmostEqual(self.top.comp.opt_design_vars[3], 
+        self.assertAlmostEqual(self.top.comp.opt_design_vars[3],
                                self.top.comp.x[3], places=1)
 
 
@@ -783,23 +779,23 @@ class IPOPTdriverExample1FromManualTestCase(unittest.TestCase):
         try:
             from ipoptdriver.ipoptdriver import IPOPTdriver, IpoptReturnStatus
         except ImportError:
-            raise SkipTest("this test requires IPOPT to be installed")  
-        
+            raise SkipTest("this test requires IPOPT to be installed")
+
         self.top = set_as_top(Assembly())
         self.top.add('comp', Example1FromManualComponent())
         self.top.add('driver', IPOPTdriver())
         self.top.driver.workflow.add('comp')
         self.top.driver.set_option('suppress_all_output', 'yes')
         self.top.driver.print_level = 0
-        
+
     def tearDown(self):
         '''tear down'''
         self.top = None
-        
+
     def test_opt1(self):
 
         self.top.driver.add_objective('comp.result')
-        
+
         self.top.driver.add_parameter('comp.x[0]', 0.0, 100.0, fd_step = .00001)
         self.top.driver.add_parameter('comp.x[1]', 0.0, 100.0, fd_step = .00001)
 
@@ -813,17 +809,17 @@ class IPOPTdriverExample1FromManualTestCase(unittest.TestCase):
 
         assert_rel_error(self,
                          self.top.driver.eval_objective(),
-                         self.top.comp.opt_objective, 
+                         self.top.comp.opt_objective,
                          0.005)
-        self.assertAlmostEqual(self.top.comp.opt_design_vars[0], 
+        self.assertAlmostEqual(self.top.comp.opt_design_vars[0],
                                self.top.comp.x[0], places=2)
-        self.assertAlmostEqual(self.top.comp.opt_design_vars[1], 
+        self.assertAlmostEqual(self.top.comp.opt_design_vars[1],
                                self.top.comp.x[1], places=2)
 
     def test_array_parameter(self):
 
         self.top.driver.add_objective('comp.result')
-        
+
         self.top.driver.add_parameter('comp.x', 0.0, 100.0, fd_step = .00001)
 
         map(self.top.driver.add_constraint, [
@@ -836,17 +832,17 @@ class IPOPTdriverExample1FromManualTestCase(unittest.TestCase):
 
         assert_rel_error(self,
                          self.top.driver.eval_objective(),
-                         self.top.comp.opt_objective, 
+                         self.top.comp.opt_objective,
                          0.005)
-        self.assertAlmostEqual(self.top.comp.opt_design_vars[0], 
+        self.assertAlmostEqual(self.top.comp.opt_design_vars[0],
                                self.top.comp.x[0], places=2)
-        self.assertAlmostEqual(self.top.comp.opt_design_vars[1], 
+        self.assertAlmostEqual(self.top.comp.opt_design_vars[1],
                                self.top.comp.x[1], places=2)
 
 
 class IPOPTdriverConstrainedBettsTestCase(unittest.TestCase):
     """test IPOPT optimizer component for the Constrained Betts problem
-    
+
     """
 
     def setUp(self):
@@ -854,8 +850,8 @@ class IPOPTdriverConstrainedBettsTestCase(unittest.TestCase):
         try:
             from ipoptdriver.ipoptdriver import IPOPTdriver, IpoptReturnStatus
         except ImportError:
-            raise SkipTest("this test requires IPOPT to be installed")  
-        
+            raise SkipTest("this test requires IPOPT to be installed")
+
         self.top = set_as_top(Assembly())
         self.top.add('comp', ConstrainedBettsComponent())
         self.top.add('driver', IPOPTdriver())
@@ -873,18 +869,18 @@ class IPOPTdriverConstrainedBettsTestCase(unittest.TestCase):
 
         self.top.driver.add_parameter('comp.x[0]', 2.0, 50.0, fd_step=.00001)
         self.top.driver.add_parameter('comp.x[1]', -50.0, 50.0, fd_step=.00001)
-        
+
         self.top.driver.add_constraint('-10.0 + 10.0*comp.x[0] - comp.x[1] > 0.0')
 
         self.top.run()
 
         assert_rel_error(self,
-                         self.top.comp.opt_objective, 
+                         self.top.comp.opt_objective,
                          self.top.driver.eval_objective(),
                          0.001)
-        self.assertAlmostEqual(self.top.comp.opt_design_vars[0], 
+        self.assertAlmostEqual(self.top.comp.opt_design_vars[0],
                                self.top.comp.x[0], places=2)
-        self.assertAlmostEqual(self.top.comp.opt_design_vars[1], 
+        self.assertAlmostEqual(self.top.comp.opt_design_vars[1],
                                self.top.comp.x[1], places=2)
 
     def test_setting_optional_options(self):
@@ -894,18 +890,18 @@ class IPOPTdriverConstrainedBettsTestCase(unittest.TestCase):
 
         self.top.driver.add_parameter('comp.x[0]', 2.0, 50.0, fd_step=.00001)
         self.top.driver.add_parameter('comp.x[1]', -50.0, 50.0, fd_step=.00001)
-        
+
         self.top.driver.add_constraint('-10.0 + 10.0*comp.x[0] - comp.x[1] > 0.0')
 
         self.top.run()
 
         assert_rel_error(self,
-                         self.top.comp.opt_objective, 
+                         self.top.comp.opt_objective,
                          self.top.driver.eval_objective(),
                          0.001)
-        self.assertAlmostEqual(self.top.comp.opt_design_vars[0], 
+        self.assertAlmostEqual(self.top.comp.opt_design_vars[0],
                                self.top.comp.x[0], places=2)
-        self.assertAlmostEqual(self.top.comp.opt_design_vars[1], 
+        self.assertAlmostEqual(self.top.comp.opt_design_vars[1],
                                self.top.comp.x[1], places=2)
 
 
